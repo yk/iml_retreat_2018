@@ -14,9 +14,15 @@ args = flags.FLAGS
 
 def main(_):
     data, labels = MNIST(False).get_data()
+    labels = labels.astype(np.int64)
     N, D = data.shape[0], np.prod(data.shape[1:])
 
-    x, y = tf.placeholder(tf.float32, (None, *data.shape[1:])), tf.placeholder(tf.int64, (None,))
+    dataset = tf.data.Dataset.from_tensor_slices((data, labels))
+    dataset = dataset.repeat(args.epochs).shuffle(buffer_size=1000).batch(args.batch_size)
+    iterator = dataset.make_one_shot_iterator()
+
+    x, y = iterator.get_next()
+
     global_step = tf.get_variable('step', dtype=tf.int32, shape=(), trainable=False)
 
     x_flat = tf.reshape(x, (-1, D))
@@ -37,16 +43,9 @@ def main(_):
 
         for epoch in range(args.epochs):
             print(f'Epoch {epoch}')
-            data_idcs = np.arange(N)
-            np.random.shuffle(data_idcs)
             num_batches = N // args.batch_size
-            batch_idcs = data_idcs[:num_batches * args.batch_size].reshape((num_batches, args.batch_size))
-
-            for batch_idx in tqdm.tqdm(batch_idcs):
-                _, loss_val, step_val = sess.run((train_op, loss, global_step), feed_dict={
-                    x: data[batch_idx],
-                    y: labels[batch_idx],
-                })
+            for _ in tqdm.trange(num_batches):
+                _, loss_val, step_val = sess.run((train_op, loss, global_step))
             print(f'Step: {step_val}\t\tLoss: {loss_val}')
 
 
