@@ -9,7 +9,6 @@ import tqdm
 
 flags.DEFINE_integer('batch_size', 32, '')
 flags.DEFINE_integer('epochs', 5, '')
-flags.DEFINE_integer('log_every', 100, '')
 args = flags.FLAGS
 
 
@@ -18,14 +17,14 @@ def main(_):
     N, D = data.shape[0], np.prod(data.shape[1:])
 
     x, y = tf.placeholder(tf.float32, (None, *data.shape[1:])), tf.placeholder(tf.int64, (None,))
-    global_step = tf.get_variable('step', dtype=tf.int32, trainable=False)
+    global_step = tf.get_variable('step', dtype=tf.int32, shape=(), trainable=False)
 
     x_flat = tf.reshape(x, (-1, D))
-    w = tf.get_variable('w', D, tf.float32, tf.initializers.random_normal())
+    w = tf.get_variable('w', (D, 10), tf.float32, tf.initializers.random_normal())
 
     logits = tf.matmul(x, w)
 
-    loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=y))
+    loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=y))
 
     optim = tf.train.AdamOptimizer(2e-4)
     grads_and_vars = optim.compute_gradients(loss)
@@ -46,10 +45,9 @@ def main(_):
             for batch_idx in tqdm.tqdm(batch_idcs):
                 _, loss_val, step_val = sess.run((train_op, loss, global_step), feed_dict={
                     x: data[batch_idx],
-                    y: data[batch_idx],
+                    y: labels[batch_idx],
                 })
-                if step_val % args.log_every == 0:
-                    print(f'Step: {step_val}\t\tLoss: {loss_val}')
+            print(f'Step: {step_val}\t\tLoss: {loss_val}')
 
 
 if __name__ == '__main__':
