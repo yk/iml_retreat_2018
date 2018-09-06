@@ -6,19 +6,27 @@ from fountain.mnist import MNIST
 import tensorflow as tf
 import numpy as np
 import tqdm
+from tensorflow.contrib import autograph
 
 flags.DEFINE_integer('batch_size', 32, '')
 flags.DEFINE_integer('epochs', 5, '')
 args = flags.FLAGS
 
 
+def weird_clip(x):
+    if x > 2.:
+        return 2. + x**.5
+    return x
+
+
 def main(_):
+    weird_clip_fn = autograph.to_graph(weird_clip)
     data, labels = MNIST(False).get_data()
     labels = labels.astype(np.int64)
     N, D = data.shape[0], np.prod(data.shape[1:])
 
     dataset = tf.data.Dataset.from_tensor_slices((data, labels))
-    dataset = dataset.repeat(args.epochs).shuffle(buffer_size=1000).batch(args.batch_size)
+    dataset = dataset.repeat(args.epochs).shuffle(buffer_size=100).batch(args.batch_size)
     iterator = dataset.make_one_shot_iterator()
 
     x, y = iterator.get_next()
@@ -31,6 +39,7 @@ def main(_):
     logits = tf.matmul(x, w)
 
     loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=y))
+    loss = weird_clip_fn(loss)
 
     optim = tf.train.AdamOptimizer(2e-4)
     grads_and_vars = optim.compute_gradients(loss)
