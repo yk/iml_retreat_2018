@@ -13,8 +13,6 @@ args = flags.FLAGS
 
 
 def main(_):
-    tf.enable_eager_execution()
-
     data, labels = MNIST(False).get_data()
     labels = labels.astype(np.int64)
     N, D = data.shape[0], np.prod(data.shape[1:])
