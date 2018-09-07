@@ -7,6 +7,7 @@ import tensorflow as tf
 import numpy as np
 import tqdm
 from tensorflow.contrib import autograph
+from tensorflow.python import debug
 
 flags.DEFINE_integer('batch_size', 32, '')
 flags.DEFINE_integer('epochs', 5, '')
@@ -48,6 +49,7 @@ def main(_):
     init_op = tf.global_variables_initializer()
 
     with tf.Session() as sess:
+        sess = debug.LocalCLIDebugWrapperSession(sess)
         sess.run(init_op)
 
         for epoch in range(args.epochs):
